@@ -16,12 +16,10 @@ def sample_text(model, length, chars_indices, indices_chars, sequence,
     for _ in range(length):
         x_pred = np.zeros((1, seq_len, len(chars_indices)))
         for i, char in enumerate(sequence):
-            x_pred[0, i, chars_indices[char]] = 1.
-
+            x_pred[0, i, chars_indices[char]] = 1.0
         preds = model.predict(x_pred, verbose=0)[0]
         next_index = sample(preds, diversity)
         next_char = indices_chars[next_index]
         sequence = sequence[1:] + next_char
-
         sys.stdout.write(next_char)
         sys.stdout.flush()

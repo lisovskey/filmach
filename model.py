@@ -1,21 +1,25 @@
 from tensorflow import keras
 
 
-def init_model(input_shape, output_dim, layer_size=128,
-               learning_rate=0.001, dropout_rate=0.8,
-               recurrent_dropout_rate=0.7):
+def init_model(input_shape, output_dim, layer_size,
+               learning_rate, dropout, recurrent_dropout):
+    """
+    Input: one hot sequence
+    Hidden: 2 GRUs with batch normalization and dropout
+    Output: char index
+    """
     model = keras.models.Sequential()
     model.add(keras.layers.Bidirectional(
         keras.layers.GRU(units=layer_size,
-                         dropout=dropout_rate,
-                         recurrent_dropout=recurrent_dropout_rate,
+                         dropout=dropout,
+                         recurrent_dropout=recurrent_dropout,
                          return_sequences=True),
         input_shape=input_shape))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Bidirectional(
         keras.layers.GRU(units=layer_size,
-                         dropout=dropout_rate, 
-                         recurrent_dropout=recurrent_dropout_rate,
+                         dropout=dropout, 
+                         recurrent_dropout=recurrent_dropout,
                          return_sequences=False)))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Dense(output_dim, activation='softmax'))

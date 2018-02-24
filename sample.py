@@ -6,6 +6,10 @@ import os
 
 
 def load_alphabet(model_dir, alphabet_name):
+    """
+    unserialize `chars_indices` and `indices_chars` from `model_dir`
+    folder with `alphabet_name` filename.
+    """
     with open(os.path.join(model_dir, alphabet_name)) as file:
         chars_indices, indices_chars = pickle.load(file)
     return chars_indices, indices_chars

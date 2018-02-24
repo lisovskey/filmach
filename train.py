@@ -3,6 +3,7 @@ from glob import glob
 from model import init_model
 from generate import sample_text
 from tensorflow import keras
+from time import time
 import os
 import pickle
 import numpy as np
@@ -56,6 +57,10 @@ def load_data(data_dir, seq_len=64, step=4):
 
 def save_alphabet(chars_indices, indices_chars, model_dir,
                   alphabet_name):
+    """
+    serialize `chars_indices` and `indices_chars` to `model_dir` folder
+    with `alphabet_name` filename.
+    """
     if not os.path.exists(model_dir):
         os.mkdir(model_dir)
     with open(os.path.join(model_dir, alphabet_name), 'wb') as file:
@@ -63,6 +68,9 @@ def save_alphabet(chars_indices, indices_chars, model_dir,
 
 
 def demo_generation(epoch, logs):
+    """
+    print demo generation on different diversities while training.
+    """
     print()
     print(5*'-', 'Generating text after epoch', epoch)
     start_index = random.randint(0, len(text) - seq_len - 1)
@@ -77,6 +85,10 @@ def demo_generation(epoch, logs):
 
 
 def init_callbacks(model_path, tensorboard_dir=None):
+    """
+    Return `callbacks` with demo generator, model checkpoints
+    and optional tensorboard.
+    """
     callbacks = [
         keras.callbacks.LambdaCallback(on_epoch_end=demo_generation),
         keras.callbacks.ModelCheckpoint(model_path),
@@ -87,8 +99,14 @@ def init_callbacks(model_path, tensorboard_dir=None):
 
 
 def train_model(model, x, y, epochs, batch_size, callbacks):
+    """
+    Fit model and note training time.
+    Return `model` and `training_duration`.
+    """
+    start = time()
     model.fit(x, y, batch_size=batch_size, epochs=epochs,
               callbacks=callbacks)
+    print(f'training took: {time() - start // 60} minutes')
     return model
 
 
@@ -107,6 +125,22 @@ def parse_args():
                         help='length of sequences',
                         type=int,
                         default=64)
+    parser.add_argument('--layer_size',
+                        help='length of recurrent layers',
+                        type=int,
+                        default=128)
+    parser.add_argument('--learning_rate',
+                        help='learning rate of optimizer',
+                        type=float,
+                        default=0.001)
+    parser.add_argument('--dropout',
+                        help='dropout of recurrent layers',
+                        type=float,
+                        default=0.5)
+    parser.add_argument('--recurrent_dropout',
+                        help='recurrent dropout of recurrent layers',
+                        type=float,
+                        default=0.3)
     parser.add_argument('--model_dir',
                         help='directory of model to save',
                         type=str,
@@ -131,7 +165,9 @@ if __name__ == '__main__':
     x, y, chars_indices, indices_chars = load_data(args.data_dir)
     save_alphabet(chars_indices, indices_chars, args.model_dir,
                   args.alphabet_name)
-    model = init_model(x[0].shape, len(indices_chars))
+    model = init_model(x[0].shape, len(indices_chars), args.layer_size,
+                       args.learning_rate, args.dropout,
+                       args.recurrent_dropout)
     callbacks = init_callbacks(os.path.join(args.model_dir,
                                             args.model_name),
                                args.tensorboard_dir)
