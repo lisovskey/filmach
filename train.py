@@ -3,6 +3,8 @@ from glob import glob
 from model import init_model
 from generate import sample_text
 from tensorflow import keras
+import os
+import pickle
 import numpy as np
 import sys
 import random
@@ -24,6 +26,7 @@ def load_data(data_dir, seq_len=64, step=4):
     
     Return `x`, `y`, `chars_indices`, `indices_chars`
     """
+    global text, chars_indices, indices_chars
     texts = [open(filename).read()
              for filename in glob(f'{data_dir}/*.txt')]
     text = '\n'.join(texts)
@@ -51,6 +54,14 @@ def load_data(data_dir, seq_len=64, step=4):
     return x, y, chars_indices, indices_chars
 
 
+def save_alphabet(chars_indices, indices_chars, model_dir,
+                  alphabet_name):
+    if not os.path.exists(model_dir):
+        os.mkdir(model_dir)
+    with open(os.path.join(model_dir, alphabet_name), 'wb') as file:
+        pickle.dump((chars_indices, indices_chars), file)
+
+
 def demo_generation(epoch, logs):
     print()
     print(5*'-', 'Generating text after epoch', epoch)
@@ -65,10 +76,10 @@ def demo_generation(epoch, logs):
         print()
 
 
-def init_callbacks(tensorboard_dir=None, model_name=None):
+def init_callbacks(model_path, tensorboard_dir=None):
     callbacks = [
         keras.callbacks.LambdaCallback(on_epoch_end=demo_generation),
-        keras.callbacks.ModelCheckpoint(model_name),
+        keras.callbacks.ModelCheckpoint(model_path),
     ]
     if tensorboard_dir:
         callbacks.append(keras.callbacks.TensorBoard(tensorboard_dir))
@@ -77,7 +88,7 @@ def init_callbacks(tensorboard_dir=None, model_name=None):
 
 def train_model(model, x, y, epochs, batch_size, callbacks):
     model.fit(x, y, batch_size=batch_size, epochs=epochs,
-              callbacks=init_callbacks())
+              callbacks=callbacks)
     return model
 
 
@@ -92,22 +103,37 @@ def parse_args():
     parser.add_argument('--batch_size',
                         help='minibatch size for training',
                         type=int)
+    parser.add_argument('--seq_len',
+                        help='length of sequences',
+                        type=int,
+                        default=64)
+    parser.add_argument('--model_dir',
+                        help='directory of model to save',
+                        type=str,
+                        default='checkpoints')
     parser.add_argument('--model_name',
                         help='name of model to save',
                         type=str,
                         default='model.h5')
+    parser.add_argument('--alphabet_name',
+                        help='name of alphabet to save',
+                        type=str,
+                        default='alphabet.pkl')
     parser.add_argument('--tensorboard_dir',
                         help='directory for tensorboard logs',
                         type=str,
-                        default=None)
+                        default='')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_args()
     x, y, chars_indices, indices_chars = load_data(args.data_dir)
+    save_alphabet(chars_indices, indices_chars, args.model_dir,
+                  args.alphabet_name)
     model = init_model(x[0].shape, len(indices_chars))
-    callbacks = init_callbacks(tensorboard_dir=args.tensorboard_dir,
-                               model_name=args.model_name)
+    callbacks = init_callbacks(os.path.join(args.model_dir,
+                                            args.model_name),
+                               args.tensorboard_dir)
     model = train_model(model, x, y, args.epochs, args.batch_size,
                         init_callbacks(args.tensorboard_dir))
