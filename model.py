@@ -11,6 +11,7 @@ def init_model(input_shape, output_dim, layer_size,
     model = keras.models.Sequential()
     model.add(keras.layers.Bidirectional(
         keras.layers.GRU(units=layer_size,
+                         activation=None,
                          dropout=dropout,
                          recurrent_dropout=recurrent_dropout,
                          return_sequences=True),
@@ -18,6 +19,7 @@ def init_model(input_shape, output_dim, layer_size,
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Bidirectional(
         keras.layers.GRU(units=layer_size,
+                         activation=None,
                          dropout=dropout, 
                          recurrent_dropout=recurrent_dropout,
                          return_sequences=False)))
