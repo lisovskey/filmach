@@ -21,5 +21,4 @@ def sample_text(model, length, chars_indices, indices_chars, sequence,
         next_index = sample(preds, diversity)
         next_char = indices_chars[next_index]
         sequence = sequence[1:] + next_char
-        sys.stdout.write(next_char)
-        sys.stdout.flush()
+        yield next_char

@@ -76,11 +76,14 @@ def demo_generation(epoch, logs):
     start_index = random.randint(0, len(text) - seq_len - 1)
     for diversity in [0.2, 0.5, 1.0, 1.2]:
         print(5*'-', 'Diversity:', diversity)
-        sentence = text[start_index: start_index + seq_len]
-        print(5*'-', f'Generating with seed: "{sentence}"')
-        sys.stdout.write(sentence)
-        sample_text(model, 256, chars_indices, indices_chars, sentence,
-                    seq_len, diversity)
+        sequence = text[start_index: start_index + seq_len]
+        print(5*'-', f'Generating with seed: "{sequence}"')
+        sys.stdout.write(sequence)
+        for char in sample_text(model, 256, chars_indices,
+                                indices_chars, sequence,
+                                seq_len, diversity):
+            sys.stdout.write(char)
+            sys.stdout.flush()
         print()
 
 
@@ -114,13 +117,16 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument('--epochs',
                         help='number of epochs to train',
-                        type=int)
+                        type=int,
+                        required=True)
     parser.add_argument('--batch_size',
                         help='minibatch size for training',
-                        type=int)
+                        type=int,
+                        required=True)
     parser.add_argument('--seq_len',
                         help='length of sequences',
-                        type=int)
+                        type=int,
+                        required=True)
     parser.add_argument('--layer_size',
                         help='length of recurrent layers',
                         type=int,
