@@ -177,4 +177,4 @@ if __name__ == '__main__':
                                             args.model_name),
                                args.tensorboard_dir)
     model = train_model(model, x, y, args.epochs, args.batch_size,
-                        init_callbacks(args.tensorboard_dir))
+                        callbacks)
