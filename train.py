@@ -17,7 +17,7 @@ chars_indices: dict
 indices_chars: dict
 
 
-def load_data(data_dir, seq_len=64, step=4):
+def load_data(data_dir, sequence_len=64, step=4):
     """
     Load .txt files from `data_dir`.
 
@@ -27,7 +27,7 @@ def load_data(data_dir, seq_len=64, step=4):
     
     Return `x`, `y`, `chars_indices`, `indices_chars`
     """
-    global text, chars_indices, indices_chars
+    global seq_len, text, chars_indices, indices_chars
     texts = [open(filename).read()
              for filename in glob(f'{data_dir}/*.txt')]
     text = '\n'.join(texts)
@@ -36,6 +36,7 @@ def load_data(data_dir, seq_len=64, step=4):
     chars_indices = {char: i for i, char in enumerate(chars)}
     indices_chars = {i: char for i, char in enumerate(chars)}
 
+    seq_len = sequence_len
     sequences = [text[i: i + seq_len]
                  for i in range(0, len(text) - seq_len, step)]
     next_chars = [text[i + seq_len]
@@ -101,7 +102,7 @@ def init_callbacks(model_path, tensorboard_dir=None):
 def train_model(model, x, y, epochs, batch_size, callbacks):
     """
     Fit model and note training time.
-    Return `model` and `training_duration`.
+    Return `model`.
     """
     start = time()
     model.fit(x, y, batch_size=batch_size, epochs=epochs,
@@ -136,11 +137,11 @@ def parse_args():
     parser.add_argument('--dropout',
                         help='dropout of recurrent layers',
                         type=float,
-                        default=0.5)
+                        default=0.9)
     parser.add_argument('--recurrent_dropout',
                         help='recurrent dropout of recurrent layers',
                         type=float,
-                        default=0.3)
+                        default=0.8)
     parser.add_argument('--model_dir',
                         help='directory of model to save',
                         type=str,

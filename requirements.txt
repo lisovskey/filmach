@@ -1,0 +1,2 @@
+tensorflow>=1.4
+h5py>=1.7
