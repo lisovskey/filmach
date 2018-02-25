@@ -3,7 +3,6 @@
 To train a model you will need a bunch of `.txt` files and tonnes of patience:
 ```
 python3 train.py
-    --data_dir=films
     --epochs=50
     --batch_size=256
     --seq_len=64

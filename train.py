@@ -25,11 +25,11 @@ def load_data(data_dir, sequence_len=64, step=4):
     and get chars after every sequence.
     Convert to one hot arrays.
     
-    Return `x`, `y`, `chars_indices`, `indices_chars`
+    Return `x`, `y`
     """
     global seq_len, text, chars_indices, indices_chars
     texts = [open(filename).read()
-             for filename in glob(f'{data_dir}/*.txt')]
+             for filename in glob(os.path.join(data_dir, '*.txt'))]
     text = '\n'.join(texts)
     chars = sorted(list(set(text)))
 
@@ -53,11 +53,10 @@ def load_data(data_dir, sequence_len=64, step=4):
     print('total chars:', len(chars))
     print('total sequences:', len(sequences))
 
-    return x, y, chars_indices, indices_chars
+    return x, y
 
 
-def save_alphabet(chars_indices, indices_chars, model_dir,
-                  alphabet_name):
+def save_alphabet(model_dir, alphabet_name):
     """
     serialize `chars_indices` and `indices_chars` to `model_dir` folder
     with `alphabet_name` filename.
@@ -113,9 +112,6 @@ def train_model(model, x, y, epochs, batch_size, callbacks):
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('--data_dir',
-                        help='directory with .txt files',
-                        type=str)
     parser.add_argument('--epochs',
                         help='number of epochs to train',
                         type=int)
@@ -124,8 +120,7 @@ def parse_args():
                         type=int)
     parser.add_argument('--seq_len',
                         help='length of sequences',
-                        type=int,
-                        default=64)
+                        type=int)
     parser.add_argument('--layer_size',
                         help='length of recurrent layers',
                         type=int,
@@ -142,6 +137,10 @@ def parse_args():
                         help='recurrent dropout of recurrent layers',
                         type=float,
                         default=0.8)
+    parser.add_argument('--data_dir',
+                        help='directory with .txt files',
+                        type=str,
+                        default='data')
     parser.add_argument('--model_dir',
                         help='directory of model to save',
                         type=str,
@@ -163,9 +162,8 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    x, y, chars_indices, indices_chars = load_data(args.data_dir)
-    save_alphabet(chars_indices, indices_chars, args.model_dir,
-                  args.alphabet_name)
+    x, y = load_data(args.data_dir)
+    save_alphabet(args.model_dir, args.alphabet_name)
     model = init_model(x[0].shape, len(indices_chars), args.layer_size,
                        args.learning_rate, args.dropout,
                        args.recurrent_dropout)

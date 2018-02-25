@@ -4,6 +4,10 @@ test/
 # Checkpoints
 checkpoints/
 
+# Logs
+logs/
+logs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
