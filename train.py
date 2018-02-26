@@ -11,12 +11,6 @@ import sys
 import random
 
 
-seq_len: int
-text: str
-chars_indices: dict
-indices_chars: dict
-
-
 def load_data(data_dir, sequence_len=64, step=4):
     """
     Load .txt files from `data_dir`.
@@ -24,10 +18,11 @@ def load_data(data_dir, sequence_len=64, step=4):
     Split text into sequences of length `seq_len` with offset `step`
     and get chars after every sequence.
     Convert to one hot arrays.
-    
+
     Return `x`, `y`
     """
     global seq_len, text, chars_indices, indices_chars
+
     texts = [open(filename).read()
              for filename in glob(os.path.join(data_dir, '*.txt'))]
     text = '\n'.join(texts)
@@ -50,7 +45,7 @@ def load_data(data_dir, sequence_len=64, step=4):
         y[i, chars_indices[next_chars[i]]] = 1
 
     print('text length:', len(text))
-    print('total chars:', len(chars))
+    print('unique chars:', len(chars))
     print('total sequences:', len(sequences))
 
     return x, y
@@ -130,7 +125,7 @@ def parse_args():
     parser.add_argument('--layer_size',
                         help='length of recurrent layers',
                         type=int,
-                        default=128)
+                        default=256)
     parser.add_argument('--learning_rate',
                         help='learning rate of optimizer',
                         type=float,
@@ -138,11 +133,11 @@ def parse_args():
     parser.add_argument('--dropout',
                         help='dropout of recurrent layers',
                         type=float,
-                        default=0.9)
+                        default=0.8)
     parser.add_argument('--recurrent_dropout',
                         help='recurrent dropout of recurrent layers',
                         type=float,
-                        default=0.8)
+                        default=0.6)
     parser.add_argument('--data_dir',
                         help='directory with .txt files',
                         type=str,

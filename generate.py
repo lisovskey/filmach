@@ -3,8 +3,12 @@ import random
 import numpy as np
 
 
-def sample(preds, diversity=1.0):
-    preds = np.asarray(preds).astype('float64') / diversity
+def sample(preds, diversity):
+    """
+    Take sample char from `preds` after softmax.
+    """
+    preds = np.asarray(preds).astype('float64')
+    preds = np.log(preds) / diversity
     exp_preds = np.exp(preds)
     preds = exp_preds / np.sum(exp_preds)
     probas = np.random.multinomial(1, preds, 1)
@@ -12,7 +16,11 @@ def sample(preds, diversity=1.0):
 
 
 def sample_text(model, length, chars_indices, indices_chars, sequence,
-                seq_len=64, diversity=1.0):
+                seq_len, diversity=1.0):
+    """
+    Yield predicted char after `sequence`.
+    Shift `sequence` one char further `length` times.
+    """
     for _ in range(length):
         x_pred = np.zeros((1, seq_len, len(chars_indices)))
         for i, char in enumerate(sequence):
