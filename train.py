@@ -11,7 +11,7 @@ import sys
 import random
 
 
-def load_data(data_dir, sequence_len=64, step=4):
+def load_data(data_dir, sequence_len, step=2):
     """
     Load .txt files from `data_dir`.
 
@@ -32,7 +32,7 @@ def load_data(data_dir, sequence_len=64, step=4):
     indices_chars = {i: char for i, char in enumerate(chars)}
 
     seq_len = sequence_len
-    sequences = [text[i: i + seq_len]
+    sequences = [text[i:i + seq_len]
                  for i in range(0, len(text) - seq_len, step)]
     next_chars = [text[i + seq_len]
                   for i in range(0, len(text) - seq_len, step)]
@@ -92,7 +92,8 @@ def init_callbacks(model_path, tensorboard_dir=None):
         keras.callbacks.ModelCheckpoint(model_path),
     ]
     if tensorboard_dir:
-        callbacks.append(keras.callbacks.TensorBoard(tensorboard_dir))
+        callbacks.append(keras.callbacks.TensorBoard(
+            tensorboard_dir, write_images=True))
     return callbacks
 
 
@@ -125,7 +126,7 @@ def parse_args():
     parser.add_argument('--layer_size',
                         help='length of recurrent layers',
                         type=int,
-                        default=256)
+                        default=128)
     parser.add_argument('--learning_rate',
                         help='learning rate of optimizer',
                         type=float,
@@ -133,11 +134,11 @@ def parse_args():
     parser.add_argument('--dropout',
                         help='dropout of recurrent layers',
                         type=float,
-                        default=0.8)
+                        default=0.75)
     parser.add_argument('--recurrent_dropout',
                         help='recurrent dropout of recurrent layers',
                         type=float,
-                        default=0.6)
+                        default=0.5)
     parser.add_argument('--data_dir',
                         help='directory with .txt files',
                         type=str,
@@ -163,7 +164,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    x, y = load_data(args.data_dir)
+    x, y = load_data(args.data_dir, args.seq_len)
     save_alphabet(args.model_dir, args.alphabet_name)
     model = init_model(x[0].shape, len(indices_chars), args.layer_size,
                        args.learning_rate, args.dropout,
