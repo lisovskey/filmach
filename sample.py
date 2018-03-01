@@ -30,6 +30,10 @@ def parse_args():
                         help='length of sequence and start text',
                         type=int,
                         required=True)
+    parser.add_argument('--candidates_num',
+                        help='number of candidates for next char',
+                        type=int,
+                        default=3)
     parser.add_argument('--model_dir',
                         help='directory of model to load',
                         type=str,
@@ -47,14 +51,14 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    error = 'sequence length and length of start text are not matching'
-    assert args.seq_len == len(args.start_text), error
+    assert (args.seq_len == len(args.start_text),
+            'sequence length and length of start text are not equal')
     model = keras.models.load_model(
         os.path.join(args.model_dir, args.model_name))
     chars_indices, indices_chars = load_alphabet(
         os.path.join(args.model_dir, args.alphabet_name))
     for char in sample_text(model, args.length, chars_indices,
                             indices_chars, args.start_text,
-                            args.seq_len):
+                            args.seq_len, args.candidates_num):
         sys.stdout.write(char)
         sys.stdout.flush()
