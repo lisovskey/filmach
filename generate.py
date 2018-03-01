@@ -16,12 +16,14 @@ def sample_text(model, length, chars_indices, indices_chars, sequence,
     Yield predicted char after `sequence`.
     Shift `sequence` one char further `length` times.
     """
+    x_pred = np.zeros((1, seq_len, len(chars_indices)))
+    for i, char in enumerate(sequence):
+        x_pred[0, i, chars_indices[char]] = 1.0
     for _ in range(length):
-        x_pred = np.zeros((1, seq_len, len(chars_indices)))
-        for i, char in enumerate(sequence):
-            x_pred[0, i, chars_indices[char]] = 1.0
         preds = model.predict(x_pred, verbose=0)[0]
         next_index = sample(preds, candidates_num)
         next_char = indices_chars[next_index]
-        sequence = sequence[1:] + next_char
         yield next_char
+        x_pred = np.roll(x_pred, -1, axis=1)
+        x_pred[0, -1] = np.zeros(len(chars_indices))
+        x_pred[0, -1, chars_indices[next_char]] = 1.0

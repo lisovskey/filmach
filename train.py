@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from glob import glob
-from model import init_model
 from generate import sample_text
+from dump import save_alphabet
 from tensorflow import keras
 import numpy as np
 import os
@@ -14,9 +14,8 @@ def load_data(data_dir):
     """
     Load .txt files from `data_dir`.
 
-    Split text into sequences of length `seq_len` with offset `step`
-    and get chars after every sequence.
-    Convert to one hot arrays.
+    Split text into sequences of length `seq_len` and get chars
+    after every sequence. Convert to one-hot arrays.
 
     Return `x`, `y`.
     """
@@ -49,20 +48,9 @@ def load_data(data_dir):
     return x, y
 
 
-def save_alphabet(model_dir, alphabet_name):
-    """
-    serialize `chars_indices` and `indices_chars` to `model_dir` folder
-    with `alphabet_name` filename.
-    """
-    if not os.path.exists(model_dir):
-        os.mkdir(model_dir)
-    with open(os.path.join(model_dir, alphabet_name), 'wb') as file:
-        pickle.dump((chars_indices, indices_chars), file)
-
-
 def demo_generation(epoch, logs):
     """
-    print demo generation on different diversities while training.
+    Print demo generation on different diversities while training.
     """
     print()
     print(5*'-', 'Generating text after epoch', epoch)
@@ -95,24 +83,50 @@ def init_callbacks(model_path, tensorboard_dir=None):
     return callbacks
 
 
+def init_model(input_shape, output_dim, layer_size,
+               learning_rate, dropout, recurrent_dropout):
+    """
+    Input: one hot sequence
+    Hidden: 2 GRUs with dropout
+    Output: char index probas
+    """
+    model = keras.models.Sequential()
+    model.add(keras.layers.Bidirectional(
+        keras.layers.GRU(units=layer_size,
+                         dropout=dropout,
+                         recurrent_dropout=recurrent_dropout,
+                         return_sequences=True),
+        input_shape=input_shape))
+    model.add(keras.layers.Bidirectional(
+        keras.layers.GRU(units=layer_size,
+                         dropout=dropout, 
+                         recurrent_dropout=recurrent_dropout,
+                         return_sequences=False)))
+    model.add(keras.layers.Dense(output_dim, activation='softmax'))
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=keras.optimizers.Adam(learning_rate),
+                  metrics=['accuracy'])
+    return model
+
+
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument('--epochs',
                         help='number of epochs to train',
                         type=int,
                         required=True)
-    parser.add_argument('--batch_size',
-                        help='minibatch size for training',
-                        type=int,
-                        required=True)
     parser.add_argument('--seq_len',
                         help='length of sequences for text splitting',
                         type=int,
                         required=True)
+    parser.add_argument('--batch_size',
+                        help='minibatch size for training',
+                        type=int,
+                        default=128)
     parser.add_argument('--layer_size',
                         help='length of recurrent layers',
                         type=int,
-                        default=128)
+                        default=256)
     parser.add_argument('--learning_rate',
                         help='learning rate of optimizer',
                         type=float,
@@ -152,7 +166,8 @@ if __name__ == '__main__':
     args = parse_args()
     seq_len = args.seq_len
     x, y = load_data(args.data_dir)
-    save_alphabet(args.model_dir, args.alphabet_name)
+    save_alphabet(args.model_dir, args.alphabet_name,
+                  chars_indices, indices_chars)
     model = init_model(x[0].shape, len(indices_chars), args.layer_size,
                        args.learning_rate, args.dropout,
                        args.recurrent_dropout)
