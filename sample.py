@@ -3,7 +3,6 @@ from generate import sample_text
 from dump import load_alphabet
 from tensorflow import keras
 import sys
-import pickle
 import os
 
 

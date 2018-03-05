@@ -55,7 +55,7 @@ def demo_generation(epoch, logs):
     print()
     print(5*'-', 'Generating text after epoch', epoch)
     start_index = np.random.randint(len(text) - seq_len)
-    for candidates_num in range(2, 4):
+    for candidates_num in range(2, 5):
         print(5*'-', 'Num of candidates:', candidates_num)
         sequence = text[start_index: start_index + seq_len]
         print(5*'-', f'Generating with seed: "{sequence}"')
@@ -95,13 +95,27 @@ def init_model(input_shape, output_dim, layer_size,
         keras.layers.GRU(units=layer_size,
                          dropout=dropout,
                          recurrent_dropout=recurrent_dropout,
+                         activation=None,
                          return_sequences=True),
         input_shape=input_shape))
+    model.add(keras.layers.BatchNormalization())
+    model.add(keras.layers.Activation('tanh'))
     model.add(keras.layers.Bidirectional(
         keras.layers.GRU(units=layer_size,
                          dropout=dropout, 
                          recurrent_dropout=recurrent_dropout,
+                         activation=None,
+                         return_sequences=True)))
+    model.add(keras.layers.BatchNormalization())
+    model.add(keras.layers.Activation('tanh'))
+    model.add(keras.layers.Bidirectional(
+        keras.layers.GRU(units=layer_size,
+                         dropout=dropout, 
+                         recurrent_dropout=recurrent_dropout,
+                         activation=None,
                          return_sequences=False)))
+    model.add(keras.layers.BatchNormalization())
+    model.add(keras.layers.Activation('tanh'))
     model.add(keras.layers.Dense(output_dim, activation='softmax'))
     model.compile(loss='categorical_crossentropy',
                   optimizer=keras.optimizers.Adam(learning_rate),
@@ -126,7 +140,7 @@ def parse_args():
     parser.add_argument('--layer_size',
                         help='length of recurrent layers',
                         type=int,
-                        default=256)
+                        default=64)
     parser.add_argument('--learning_rate',
                         help='learning rate of optimizer',
                         type=float,
@@ -134,11 +148,11 @@ def parse_args():
     parser.add_argument('--dropout',
                         help='dropout of recurrent layers',
                         type=float,
-                        default=0.75)
+                        default=0.0)
     parser.add_argument('--recurrent_dropout',
                         help='recurrent dropout of recurrent layers',
                         type=float,
-                        default=0.5)
+                        default=0.0)
     parser.add_argument('--data_dir',
                         help='directory with .txt files',
                         type=str,
