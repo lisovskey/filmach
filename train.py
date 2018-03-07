@@ -2,12 +2,17 @@ from argparse import ArgumentParser
 from glob import glob
 from generate import sample_text
 from dump import save_alphabet
-from tensorflow import keras
 import numpy as np
 import os
-import pickle
 import sys
-import random
+from keras.models import Sequential
+from keras.optimizers import Adam
+from keras.callbacks import (
+    ModelCheckpoint, LambdaCallback, TensorBoard
+)
+from keras.layers import (
+    BatchNormalization,Activation, Bidirectional, GRU, Dense
+)
 
 
 def load_data(data_dir):
@@ -74,12 +79,12 @@ def init_callbacks(model_path, tensorboard_dir=None):
     and optional tensorboard.
     """
     callbacks = [
-        keras.callbacks.LambdaCallback(on_epoch_end=demo_generation),
-        keras.callbacks.ModelCheckpoint(model_path),
+        LambdaCallback(on_epoch_end=demo_generation),
+        ModelCheckpoint(model_path),
     ]
     if tensorboard_dir:
-        callbacks.append(keras.callbacks.TensorBoard(
-            tensorboard_dir, write_images=True))
+        callbacks.append(TensorBoard(tensorboard_dir,
+                                     write_images=True))
     return callbacks
 
 
@@ -90,35 +95,32 @@ def init_model(input_shape, output_dim, layer_size,
     Hidden: 2 GRUs with dropout
     Output: char index probas
     """
-    model = keras.models.Sequential()
-    model.add(keras.layers.Bidirectional(
-        keras.layers.GRU(units=layer_size,
-                         dropout=dropout,
-                         recurrent_dropout=recurrent_dropout,
-                         activation=None,
-                         return_sequences=True),
-        input_shape=input_shape))
-    model.add(keras.layers.BatchNormalization())
-    model.add(keras.layers.Activation('tanh'))
-    model.add(keras.layers.Bidirectional(
-        keras.layers.GRU(units=layer_size,
-                         dropout=dropout, 
-                         recurrent_dropout=recurrent_dropout,
-                         activation=None,
-                         return_sequences=True)))
-    model.add(keras.layers.BatchNormalization())
-    model.add(keras.layers.Activation('tanh'))
-    model.add(keras.layers.Bidirectional(
-        keras.layers.GRU(units=layer_size,
-                         dropout=dropout, 
-                         recurrent_dropout=recurrent_dropout,
-                         activation=None,
-                         return_sequences=False)))
-    model.add(keras.layers.BatchNormalization())
-    model.add(keras.layers.Activation('tanh'))
-    model.add(keras.layers.Dense(output_dim, activation='softmax'))
+    model = Sequential()
+    model.add(Bidirectional(GRU(units=layer_size,
+                                dropout=dropout,
+                                recurrent_dropout=recurrent_dropout,
+                                activation=None,
+                                return_sequences=True),
+                            input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('tanh'))
+    model.add(Bidirectional(GRU(units=layer_size,
+                                dropout=dropout, 
+                                recurrent_dropout=recurrent_dropout,
+                                activation=None,
+                                return_sequences=True)))
+    model.add(BatchNormalization())
+    model.add(Activation('tanh'))
+    model.add(Bidirectional(GRU(units=layer_size,
+                                dropout=dropout, 
+                                recurrent_dropout=recurrent_dropout,
+                                activation=None,
+                                return_sequences=False)))
+    model.add(BatchNormalization())
+    model.add(Activation('tanh'))
+    model.add(Dense(output_dim, activation='softmax'))
     model.compile(loss='categorical_crossentropy',
-                  optimizer=keras.optimizers.Adam(learning_rate),
+                  optimizer=Adam(learning_rate),
                   metrics=['accuracy'])
     return model
 

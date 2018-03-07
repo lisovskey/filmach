@@ -3,8 +3,7 @@
 To train a model you will need a bunch of `.txt` files and tonnes of patience:
 ```
 python3 train.py \
-    --epochs=20 \
-    --batch_size=256 \
+    --epochs=10 \
     --seq_len=16 \
     --tensorboard_dir=logs
 ```

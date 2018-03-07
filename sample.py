@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from generate import sample_text
 from dump import load_alphabet
-from tensorflow import keras
+from keras.models import load_model
 import sys
 import os
 
@@ -43,10 +43,10 @@ if __name__ == '__main__':
     args = parse_args()
     assert args.seq_len == len(args.start_text), \
             'sequence length and length of start text are not equal'
-    model = keras.models.load_model(os.path.join(args.model_dir,
-                                                 args.model_name))
+    model = load_model(os.path.join(args.model_dir, args.model_name))
     chars_indices, indices_chars = load_alphabet(args.model_dir,
                                                  args.alphabet_name)
+    sys.stdout.write(args.start_text)
     for char in sample_text(model, args.length, chars_indices,
                             indices_chars, args.start_text,
                             args.seq_len, args.candidates_num):
