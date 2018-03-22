@@ -5,13 +5,15 @@ from dump import save_alphabet
 import numpy as np
 import os
 import sys
+from collections import Counter
 from keras.models import Sequential
 from keras.optimizers import Adam
+from keras.regularizers import l2
 from keras.callbacks import (
     ModelCheckpoint, LambdaCallback, TensorBoard
 )
 from keras.layers import (
-    BatchNormalization,Activation, Bidirectional, GRU, Dense
+    BatchNormalization, Activation, Bidirectional, GRU, Dense
 )
 
 
@@ -28,7 +30,8 @@ def load_data(data_dir):
 
     texts = [open(filename).read()
              for filename in glob(os.path.join(data_dir, '*.txt'))]
-    text = '\n'.join(texts)
+    text = '\n\n'.join(texts)
+    print(Counter(text))
     chars = sorted(list(set(text)))
 
     chars_indices = {char: i for i, char in enumerate(chars)}
@@ -92,30 +95,36 @@ def init_model(input_shape, output_dim, layer_size,
                learning_rate, dropout, recurrent_dropout):
     """
     Input: one hot sequence
-    Hidden: 2 GRUs with dropout
+    Hidden: 3 GRUs
     Output: char index probas
     """
     model = Sequential()
+    model.add(Dense(units=len(chars_indices),
+                    input_shape=input_shape))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
     model.add(Bidirectional(GRU(units=layer_size,
                                 dropout=dropout,
                                 recurrent_dropout=recurrent_dropout,
                                 activation=None,
-                                return_sequences=True),
-                            input_shape=input_shape))
+                                return_sequences=True,
+                                recurrent_regularizer=l2())))
+    model.add(BatchNormalization())
+    model.add(Activation('tanh'))
+    model.add(Bidirectional(GRU(units=layer_size*2,
+                                dropout=dropout, 
+                                recurrent_dropout=recurrent_dropout,
+                                activation=None,
+                                return_sequences=True,
+                                recurrent_regularizer=l2())))
     model.add(BatchNormalization())
     model.add(Activation('tanh'))
     model.add(Bidirectional(GRU(units=layer_size,
                                 dropout=dropout, 
                                 recurrent_dropout=recurrent_dropout,
                                 activation=None,
-                                return_sequences=True)))
-    model.add(BatchNormalization())
-    model.add(Activation('tanh'))
-    model.add(Bidirectional(GRU(units=layer_size,
-                                dropout=dropout, 
-                                recurrent_dropout=recurrent_dropout,
-                                activation=None,
-                                return_sequences=False)))
+                                return_sequences=False,
+                                recurrent_regularizer=l2())))
     model.add(BatchNormalization())
     model.add(Activation('tanh'))
     model.add(Dense(output_dim, activation='softmax'))
