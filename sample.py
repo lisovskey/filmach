@@ -20,10 +20,6 @@ def parse_args():
                         help='length of sequence and start text',
                         type=int,
                         required=True)
-    parser.add_argument('--candidates_num',
-                        help='number of candidates for next char',
-                        type=int,
-                        default=3)
     parser.add_argument('--model_dir',
                         help='directory of model to load',
                         type=str,
@@ -36,6 +32,10 @@ def parse_args():
                         help='name of alphabet to load',
                         type=str,
                         default='alphabet.pkl')
+    parser.add_argument('--diffusion',
+                        help='difussion of sequences preds',
+                        type=float,
+                        default=0.3)
     return parser.parse_args()
 
 
@@ -49,6 +49,6 @@ if __name__ == '__main__':
     sys.stdout.write(args.start_text)
     for char in sample_text(model, args.length, chars_indices,
                             indices_chars, args.start_text,
-                            args.seq_len, args.candidates_num):
+                            args.seq_len, args.diffusion):
         sys.stdout.write(char)
         sys.stdout.flush()

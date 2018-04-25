@@ -63,14 +63,14 @@ def demo_generation(epoch, logs):
     print()
     print(5*'-', 'Generating text after epoch', epoch)
     start_index = np.random.randint(len(text) - seq_len)
-    for candidates_num in range(2, 5):
-        print(5*'-', 'Num of candidates:', candidates_num)
+    for diffusion in [0.2, 0.3, 0.4]:
+        print(5*'-', 'Diffusion:', diffusion)
         sequence = text[start_index: start_index + seq_len]
         print(5*'-', f'Generating with seed: "{sequence}"')
         sys.stdout.write(sequence)
         for char in sample_text(model, 256, chars_indices,
                                 indices_chars, sequence,
-                                seq_len, candidates_num):
+                                seq_len, diffusion):
             sys.stdout.write(char)
             sys.stdout.flush()
         print()
@@ -111,7 +111,7 @@ def init_model(input_shape, output_dim, layer_size,
                                 recurrent_regularizer=l2())))
     model.add(BatchNormalization())
     model.add(Activation('tanh'))
-    model.add(Bidirectional(GRU(units=layer_size*2,
+    model.add(Bidirectional(GRU(units=layer_size,
                                 dropout=dropout, 
                                 recurrent_dropout=recurrent_dropout,
                                 activation=None,

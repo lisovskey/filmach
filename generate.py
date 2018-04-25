@@ -1,17 +1,16 @@
 import numpy as np
 
 
-def sample(preds, candidates_num):
+def sample(preds, diffusion):
     """
-    Take sample char from `preds` with `candidates_num` most
-    possible char indices.
+    Make a diffusion of chars predictions and take most possible
     """
-    candidates = np.argpartition(preds, -candidates_num)
-    return np.random.choice(candidates[-candidates_num:])
+    preds = [pred + np.random.uniform(high=diffusion) for pred in preds]
+    return np.argmax(preds)
 
 
 def sample_text(model, length, chars_indices, indices_chars, sequence,
-                seq_len, candidates_num):
+                seq_len, diffusion):
     """
     Yield predicted char after `sequence`.
     Shift `sequence` one char further `length` times.
@@ -21,7 +20,7 @@ def sample_text(model, length, chars_indices, indices_chars, sequence,
         x_pred[0, i, chars_indices[char]] = 1.0
     for _ in range(length):
         preds = model.predict(x_pred, verbose=0)[0]
-        next_index = sample(preds, candidates_num)
+        next_index = sample(preds, diffusion)
         next_char = indices_chars[next_index]
         yield next_char
         x_pred = np.roll(x_pred, -1, axis=1)
