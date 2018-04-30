@@ -3,19 +3,19 @@ import numpy as np
 
 def sample(preds, diffusion):
     """
-    Make a diffusion of chars predictions and take most possible
+    Make a diffusion of chars predictions and take most possible.
     """
     preds = [pred + np.random.uniform(high=diffusion) for pred in preds]
     return np.argmax(preds)
 
 
 def sample_text(model, length, chars_indices, indices_chars, sequence,
-                seq_len, diffusion):
+                diffusion):
     """
     Yield predicted char after `sequence`.
     Shift `sequence` one char further `length` times.
     """
-    x_pred = np.zeros((1, seq_len, len(chars_indices)))
+    x_pred = np.zeros([1, len(sequence), len(chars_indices)])
     for i, char in enumerate(sequence):
         x_pred[0, i, chars_indices[char]] = 1.0
     for _ in range(length):

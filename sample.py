@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
 from generate import sample_text
 from dump import load_alphabet
-from keras.models import load_model
-import sys
-import os
+from tensorflow import keras
+from sys import stdout
+from os import path
 
 
 def parse_args():
@@ -15,10 +15,6 @@ def parse_args():
     parser.add_argument('--start_text',
                         help='first sequence to predict next',
                         type=str,
-                        required=True)
-    parser.add_argument('--seq_len',
-                        help='length of sequence and start text',
-                        type=int,
                         required=True)
     parser.add_argument('--model_dir',
                         help='directory of model to load',
@@ -33,7 +29,7 @@ def parse_args():
                         type=str,
                         default='alphabet.pkl')
     parser.add_argument('--diffusion',
-                        help='difussion of sequences preds',
+                        help='diffusion of sequences preds',
                         type=float,
                         default=0.3)
     return parser.parse_args()
@@ -41,14 +37,13 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    assert args.seq_len == len(args.start_text), \
-            'sequence length and length of start text are not equal'
-    model = load_model(os.path.join(args.model_dir, args.model_name))
+    model = keras.models.load_model(path.join(args.model_dir,
+                                              args.model_name))
     chars_indices, indices_chars = load_alphabet(args.model_dir,
                                                  args.alphabet_name)
-    sys.stdout.write(args.start_text)
+    stdout.write(args.start_text)
     for char in sample_text(model, args.length, chars_indices,
-                            indices_chars, args.start_text,
-                            args.seq_len, args.diffusion):
-        sys.stdout.write(char)
-        sys.stdout.flush()
+                            indices_chars, args.start_text, args.diffusion):
+        stdout.write(char)
+        stdout.flush()
+    print()
