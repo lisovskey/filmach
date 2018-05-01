@@ -179,13 +179,9 @@ def parse_args():
     parser.add_argument('--learning_rate',
                         help='learning rate of optimizer',
                         type=float,
-                        default=0.002)
-    parser.add_argument('--validation_split',
-                        help='part of training set for validation',
-                        type=float,
-                        default=0.1)
+                        default=0.001)
     parser.add_argument('--regularizer_rate',
-                        help='recurrent dropout of recurrent layers',
+                        help='recurrent and kernel regularizers',
                         type=float,
                         default=0.005)
     parser.add_argument('--data_dir',
@@ -209,7 +205,7 @@ def parse_args():
                         type=str,
                         default='')
     parser.add_argument('--demo_length',
-                        help='minibatch size for training',
+                        help='demonstration text length',
                         type=int,
                         default=300)
     return parser.parse_args()
@@ -228,4 +224,4 @@ if __name__ == '__main__':
                                          args.model_name),
                                args.tensorboard_dir)
     model.fit(x, y, batch_size=args.batch_size, epochs=args.epochs,
-              callbacks=callbacks, validation_split=args.validation_split)
+              callbacks=callbacks)
