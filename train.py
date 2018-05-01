@@ -83,36 +83,74 @@ def init_callbacks(model_path, tensorboard_dir):
     return callbacks
 
 
+def dense(x, layer_size, regularizer_rate):
+    """
+    Dense & batch norm layer
+    """
+    layer = keras.layers.Dense(
+        units=layer_size,
+        use_bias=False,
+        kernel_regularizer=keras.regularizers.l2(regularizer_rate))
+    x = layer(x)
+    x = keras.layers.BatchNormalization()(x)
+    return keras.layers.Activation('relu')(x)
+
+
+def gru(x, layer_size, regularizer_rate):
+    """
+    Bidirectional GRU & batch norm layer
+    """
+    layer = keras.layers.Bidirectional(keras.layers.GRU(
+        units=layer_size,
+        activation=None,
+        return_sequences=True,
+        recurrent_regularizer=keras.regularizers.l2(regularizer_rate)))
+    x = layer(x)
+    x = keras.layers.BatchNormalization()(x)
+    return keras.layers.Activation('tanh')(x)
+
+
+def attention(x, layer_size):
+    """
+    Attention layer
+    """
+    x_attention = keras.layers.Dense(1, activation='tanh')(x)
+    x_attention = keras.layers.Flatten()(x_attention)
+    x_attention = keras.layers.Activation('softmax')(x_attention)
+    x_attention = keras.layers.RepeatVector(layer_size)(x_attention)
+    x_attention = keras.layers.Permute([2, 1])(x_attention)
+    x = keras.layers.multiply([x, x_attention])
+    return keras.layers.Lambda(lambda x: keras.backend.sum(x, axis=-2))(x)
+
+
+def output_dense(x, layer_size):
+    """
+    Softmax dense layer.
+    """
+    return keras.layers.Dense(layer_size, activation='softmax')(x)
+
+
 def init_model(input_shape, output_dim, recurrent_layers,
-               layer_size, learning_rate, dropout, regularizer_rate):
+               layer_size, learning_rate, regularizer_rate):
     """
     Input: one hot sequence.
-    Hidden: dense & GRUs.
+
+    Hidden: dense, GRUs, attention.
+
     Output: char index probas.
     """
     x_input = keras.layers.Input(shape=(input_shape))
-    dense = keras.layers.Dense(
-        units=layer_size,
-        kernel_regularizer=keras.regularizers.l2(regularizer_rate))
-    x = dense(x_input)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.Dropout(dropout)(x)
-    x = keras.layers.Activation('relu')(x)
-    for i in range(recurrent_layers):
-        return_sequences = i + 1 < recurrent_layers
-        gru = keras.layers.Bidirectional(keras.layers.GRU(
-            units=layer_size,
-            activation=None,
-            return_sequences=return_sequences,
-            recurrent_regularizer=keras.regularizers.l2(regularizer_rate)))
-        x = gru(keras.layers.concatenate([x_input, x]))
-        x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Activation('tanh')(x)
-    x_output = keras.layers.Dense(output_dim, activation='softmax')(x)
+    x = dense(x_input, layer_size, regularizer_rate)
+    for _ in range(recurrent_layers):
+        x = gru(keras.layers.concatenate([x_input, x]),
+                layer_size, regularizer_rate)
+    x = attention(x, keras.backend.shape(x)[-1])
+    x_output = output_dense(x, output_dim)
     model = keras.Model(inputs=x_input, outputs=x_output)
     model.compile(loss='categorical_crossentropy',
                   optimizer=keras.optimizers.RMSprop(learning_rate),
                   metrics=['accuracy'])
+    print(model.summary())
     return model
 
 
@@ -146,10 +184,6 @@ def parse_args():
                         help='part of training set for validation',
                         type=float,
                         default=0.1)
-    parser.add_argument('--dropout',
-                        help='dropout of recurrent layers',
-                        type=float,
-                        default=0.25)
     parser.add_argument('--regularizer_rate',
                         help='recurrent dropout of recurrent layers',
                         type=float,
@@ -189,8 +223,7 @@ if __name__ == '__main__':
                   chars_indices, indices_chars)
     model = init_model(x[0].shape, len(indices_chars),
                        args.recurrent_layers, args.layer_size,
-                       args.learning_rate, args.dropout,
-                       args.regularizer_rate)
+                       args.learning_rate, args.regularizer_rate)
     callbacks = init_callbacks(path.join(args.model_dir,
                                          args.model_name),
                                args.tensorboard_dir)
