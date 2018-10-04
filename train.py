@@ -22,7 +22,7 @@ def load_data(data_dir):
 
     texts = [open(filename).read()
              for filename in glob(path.join(data_dir, '*.txt'))]
-    text = '\n\n'.join(texts)
+    text = '\n'.join(texts)
     chars = sorted(list(set(text)))
 
     print(Counter(text))
@@ -54,7 +54,7 @@ def demo_generation(epoch, logs):
     Print demo generation on different diffusion while training.
     """
     print()
-    print(5*'-', 'Generating text after epoch', epoch)
+    print(5*'-', 'Generating text after epoch', epoch + 1)
     start_index = np.random.randint(len(text) - seq_len)
     for diffusion in [0.2, 0.3, 0.4]:
         print(5*'-', 'Diffusion:', diffusion)
@@ -110,23 +110,11 @@ def gru(x, layer_size, regularizer_rate):
     return keras.layers.Activation('tanh')(x)
 
 
-def attention(x, layer_size):
-    """
-    Attention layer
-    """
-    x_attention = keras.layers.Dense(1, activation='tanh')(x)
-    x_attention = keras.layers.Flatten()(x_attention)
-    x_attention = keras.layers.Activation('softmax')(x_attention)
-    x_attention = keras.layers.RepeatVector(layer_size)(x_attention)
-    x_attention = keras.layers.Permute([2, 1])(x_attention)
-    x = keras.layers.multiply([x, x_attention])
-    return keras.layers.Lambda(lambda x: keras.backend.sum(x, axis=-2))(x)
-
-
 def output_dense(x, layer_size):
     """
     Softmax dense layer.
     """
+    x = keras.layers.Flatten()(x)
     return keras.layers.Dense(layer_size, activation='softmax')(x)
 
 
@@ -140,17 +128,18 @@ def init_model(input_shape, output_dim, recurrent_layers,
     Output: char index probas.
     """
     x_input = keras.layers.Input(shape=(input_shape))
-    x = dense(x_input, layer_size, regularizer_rate)
+    x_dense = x_input
+    x_gru = x_input
     for _ in range(recurrent_layers):
-        x = gru(keras.layers.concatenate([x_input, x]),
-                layer_size, regularizer_rate)
-    x = attention(x, keras.backend.shape(x)[-1])
-    x_output = output_dense(x, output_dim)
+        x_dense = dense(x_dense, layer_size, regularizer_rate)
+        x_gru = gru(keras.layers.concatenate([x_dense, x_gru]),
+                    layer_size, regularizer_rate)
+    x_output = output_dense(x_gru, output_dim)
     model = keras.Model(inputs=x_input, outputs=x_output)
     model.compile(loss='categorical_crossentropy',
-                  optimizer=keras.optimizers.RMSprop(learning_rate),
+                  optimizer=keras.optimizers.Nadam(learning_rate),
                   metrics=['accuracy'])
-    print(model.summary())
+    model.summary()
     return model
 
 
