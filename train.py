@@ -3,7 +3,6 @@ from glob import glob
 from generate import sample_text
 from dump import save_alphabet
 from sys import stdout
-from collections import Counter
 from tensorflow import keras
 from os import path
 import numpy as np
@@ -24,8 +23,6 @@ def load_data(data_dir):
              for filename in glob(path.join(data_dir, '*.txt'))]
     text = '\n'.join(texts)
     chars = sorted(list(set(text)))
-
-    print(Counter(text))
 
     chars_indices = {char: i for i, char in enumerate(chars)}
     indices_chars = {i: char for i, char in enumerate(chars)}
