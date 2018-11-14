@@ -13,7 +13,7 @@ def load_data(data_dir):
     Load .txt files from `data_dir`.
 
     Split text into sequences of length `seq_len` and get chars
-    after every sequence. Convert to one-hot arrays.
+    after every sequence. Convert to index numbers.
 
     Return features & labels.
     """
@@ -27,17 +27,13 @@ def load_data(data_dir):
     chars_indices = {char: i for i, char in enumerate(chars)}
     indices_chars = {i: char for i, char in enumerate(chars)}
 
-    sequences = [text[i:i + seq_len]
+    sequences = [[chars_indices[char] for char in text[i:i + seq_len]]
                  for i in range(len(text) - seq_len)]
-    next_chars = [text[i + seq_len]
+    next_chars = [chars_indices[text[i + seq_len]]
                   for i in range(len(text) - seq_len)]
 
-    x = np.zeros((len(sequences), seq_len, len(chars)), dtype=np.bool)
-    y = np.zeros((len(sequences), len(chars)), dtype=np.bool)
-    for i, sequence in enumerate(sequences):
-        for j, char in enumerate(sequence):
-            x[i, j, chars_indices[char]] = 1
-        y[i, chars_indices[next_chars[i]]] = 1
+    x = np.array(sequences)
+    y = np.array(next_chars)
 
     print('text length:', len(text))
     print('unique chars:', len(chars))
@@ -48,7 +44,7 @@ def load_data(data_dir):
 
 def demo_generation(epoch, logs):
     """
-    Print demo generation on different diffusion while training.
+    Print demo generation on different diffusion after every `epoch`.
     """
     print()
     print(5*'-', 'Generating text after epoch', epoch + 1)
@@ -78,6 +74,14 @@ def init_callbacks(model_path, tensorboard_dir):
         callbacks.append(keras.callbacks.TensorBoard(tensorboard_dir,
                                                      write_images=True))
     return callbacks
+
+
+def embedding(x, input_dim, output_dim):
+    """
+    Embedding layer.
+    """
+    layer = keras.layers.Embedding(input_dim, output_dim)
+    return layer(x)
 
 
 def dense(x, layer_size, regularizer_rate):
@@ -112,11 +116,12 @@ def output_dense(x, layer_size):
     Softmax dense layer.
     """
     x = keras.layers.Flatten()(x)
-    return keras.layers.Dense(layer_size, activation='softmax')(x)
+    layer = keras.layers.Dense(layer_size, activation='softmax')
+    return layer(x)
 
 
-def init_model(input_shape, output_dim, recurrent_layers,
-               layer_size, learning_rate, regularizer_rate):
+def init_model(input_shape, output_dim, recurrent_layers, layer_size,
+               embedding_size, learning_rate, regularizer_rate):
     """
     Input: one hot sequence.
 
@@ -124,16 +129,16 @@ def init_model(input_shape, output_dim, recurrent_layers,
 
     Output: char index probas.
     """
-    x_input = keras.layers.Input(shape=(input_shape))
-    x_dense = x_input
-    x_gru = x_input
+    x_input = keras.layers.Input(shape=input_shape)
+    x_embedded = embedding(x_input, output_dim, embedding_size)
+    x_gru = x_embedded
     for _ in range(recurrent_layers):
-        x_dense = dense(x_dense, layer_size, regularizer_rate)
-        x_gru = gru(keras.layers.concatenate([x_dense, x_gru]),
+        x_embedded = dense(x_embedded, layer_size, regularizer_rate)
+        x_gru = gru(keras.layers.concatenate([x_embedded, x_gru]),
                     layer_size, regularizer_rate)
     x_output = output_dense(x_gru, output_dim)
     model = keras.Model(inputs=x_input, outputs=x_output)
-    model.compile(loss='categorical_crossentropy',
+    model.compile(loss='sparse_categorical_crossentropy',
                   optimizer=keras.optimizers.Nadam(learning_rate),
                   metrics=['accuracy'])
     model.summary()
@@ -162,6 +167,10 @@ def parse_args():
                         help='length of recurrent layers',
                         type=int,
                         default=64)
+    parser.add_argument('--embedding_size',
+                        help='length of embedding layer',
+                        type=int,
+                        default=16)
     parser.add_argument('--learning_rate',
                         help='learning rate of optimizer',
                         type=float,
@@ -203,8 +212,8 @@ if __name__ == '__main__':
     x, y = load_data(args.data_dir)
     save_alphabet(args.model_dir, args.alphabet_name,
                   chars_indices, indices_chars)
-    model = init_model(x[0].shape, len(indices_chars),
-                       args.recurrent_layers, args.layer_size,
+    model = init_model(x[0].shape, len(indices_chars), args.recurrent_layers,
+                       args.layer_size, args.embedding_size,
                        args.learning_rate, args.regularizer_rate)
     callbacks = init_callbacks(path.join(args.model_dir,
                                          args.model_name),

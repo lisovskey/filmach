@@ -3,8 +3,8 @@
 To train a model you will need a bunch of `.txt` files and tonnes of patience:
 ```
 python3 train.py \
-    --epochs=15 \
-    --seq_len=20 \
+    --epochs=16 \
+    --seq_len=16 \
     --tensorboard_dir=logs
 ```
 
@@ -12,7 +12,7 @@ To generate your masterpieces it will be enough to run the script and pretend th
 ```
 python3 sample.py \
     --length=10000 \
-    --start_text='Молодой человек, что' \
+    --start_text='Молодой человек,' \
     --model_name=model.h5
 ```
 
