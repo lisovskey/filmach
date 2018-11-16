@@ -1,8 +1,9 @@
 import numpy as np
+import torch
 
 
 def sample_text(model, length, chars_indices, indices_chars, sequence,
-                diffusion):
+                diffusion, use_cuda=False):
     """
     Yield predicted char after `sequence`.
     Shift `sequence` one char further `length` times.
@@ -18,7 +19,10 @@ def sample_text(model, length, chars_indices, indices_chars, sequence,
     for i, char in enumerate(sequence):
         x_pred[0, i] = chars_indices[char]
     for _ in range(length):
-        preds = model.predict(x_pred, verbose=0)[0]
+        x_pred = torch.tensor(x_pred, dtype=torch.long)
+        if use_cuda:
+            x_pred = x_pred.cuda()
+        preds = model(x_pred, use_cuda)[0]
         next_index = sample(preds, diffusion)
         next_char = indices_chars[next_index]
         yield next_char
