@@ -14,7 +14,7 @@ def parse_args():
     parser.add_argument('--start_text', type=str, required=True)
     parser.add_argument('--model_dir', type=str, default='checkpoints')
     parser.add_argument('--alphabet_name', type=str, default='alphabet')
-    parser.add_argument('--diffusion', type=float, default=0.3)
+    parser.add_argument('--temperature', type=float, default=0.8)
     return parser.parse_args()
 
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
                                                  args.alphabet_name)
     stdout.write(args.start_text)
     for char in sample_text(model, args.length, chars_indices,
-                            indices_chars, args.start_text, args.diffusion):
+                            indices_chars, args.start_text, args.temperature):
         stdout.write(char)
         stdout.flush()
     print()

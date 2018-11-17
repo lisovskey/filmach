@@ -45,19 +45,19 @@ def load_data(data_dir, sequence_size):
 
 
 def generate_demo(model, demo_length, text, sequence_size, chars_indices,
-                  indices_chars, use_cuda):
+                  indices_chars):
     """
-    Print demo generation on different diffusion after every epoch.
+    Print demo generation on different temperature after every epoch.
     """
     print()
     start_index = np.random.randint(len(text) - sequence_size)
-    for diffusion in [0.2, 0.3, 0.4]:
-        print(5*'-', 'Diffusion:', diffusion)
+    for temperature in [0.9, 0.8, 0.7]:
+        print(5*'-', 'Temperature:', temperature)
         sequence = text[start_index: start_index + sequence_size]
         print(5*'-', f'Generating with seed: "{sequence}"')
         stdout.write(sequence)
         for char in sample_text(model, demo_length, chars_indices,
-                                indices_chars, sequence, diffusion, use_cuda):
+                                indices_chars, sequence, temperature):
             stdout.write(char)
             stdout.flush()
         print()    
@@ -69,11 +69,11 @@ def parse_args():
     parser.add_argument('--sequence_size', type=int, required=True)
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--num_layers', type=int, default=3)
-    parser.add_argument('--layer_size', type=int, default=64)
+    parser.add_argument('--layer_size', type=int, default=128)
     parser.add_argument('--embedding_size', type=int, default=16)
     parser.add_argument('--learning_rate', type=float, default=0.001)
-    parser.add_argument('--regularizer_rate', type=float, default=0.005)
-    parser.add_argument('--dropout', type=float, default=0.05)
+    parser.add_argument('--weight_decay', type=float, default=0.005)
+    parser.add_argument('--dropout', type=float, default=0.1)
     parser.add_argument('--data_dir', type=str, default='data')
     parser.add_argument('--model_dir', type=str, default='checkpoints')
     parser.add_argument('--model_name', type=str, default='model')
@@ -96,22 +96,26 @@ if __name__ == '__main__':
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.RMSprop(model.parameters(), args.learning_rate,
-                                    weight_decay=args.regularizer_rate)
-    dataloader = torch.utils.data.DataLoader(dataset, args.batch_size)
+                                    weight_decay=args.weight_decay)
+    dataloader = torch.utils.data.DataLoader(dataset, args.batch_size,
+                                             shuffle=True)
 
     for epoch in range(1, args.epochs + 1):
         progress = tqdm(dataloader)
-        for i, (x_batch, y_batch) in enumerate(progress):
+        losses = []
+        for x_batch, y_batch in progress:
             if use_cuda:
                 x_batch, y_batch = x_batch.cuda(), y_batch.cuda()
-            y_preds = model(x_batch, use_cuda)
+            model.init_hidden(len(x_batch))
+            y_preds = model(x_batch)
             loss = criterion(y_preds, y_batch)
-            progress.set_description('Loss: {:.4f}'.format(loss.item()))
+            losses.append(loss.item())
+            progress.set_description('Loss: {:.4f}'.format(np.mean(losses)))
             model.zero_grad()
             loss.backward()
             optimizer.step()
         generate_demo(model, args.demo_length, text, args.sequence_size,
-                      chars_indices, indices_chars, use_cuda)
+                      chars_indices, indices_chars)
         model_name = f'{args.model_name}_{epoch}.pt'
         print(f'"{model_name}" saved')
         torch.save(model, path.join(args.model_dir, model_name))
