@@ -12,10 +12,11 @@ class Model(torch.nn.Module):
         self.num_layers = num_layers
 
         self.embedding = torch.nn.Embedding(output_size, embedding_size)
-        self.encoder = torch.nn.Linear(embedding_size, layer_size, bias=False)
-        self.gru = torch.nn.GRU(layer_size, layer_size // 2, batch_first=True,
-                                bidirectional=True)
-        self.linear = torch.nn.Linear(layer_size * 2, layer_size, bias=False)
+        self.gru = torch.nn.GRU(embedding_size, layer_size // 2, num_layers,
+                                batch_first=True, bidirectional=True,
+                                dropout=dropout)
+        self.linear = torch.nn.Linear(layer_size + embedding_size, layer_size,
+                                      bias=False)
         self.dropout = torch.nn.Dropout(dropout)
         self.batch_norm = torch.nn.BatchNorm1d(sequence_size)
         self.decoder = torch.nn.Linear(layer_size * sequence_size, output_size)
@@ -23,18 +24,12 @@ class Model(torch.nn.Module):
     def forward(self, x):
         x = self.embedding(x)
         x = self.dropout(x)
-        x = self.encoder(x)
+        x_gru, self.hidden = self.gru(x, self.hidden)
+        x = torch.cat([x, x_gru], -1)
+        x = self.linear(x)
         x = self.batch_norm(x)
         x = torch.nn.functional.leaky_relu(x)
         x = self.dropout(x)
-        x_gru = x
-        for _ in range(self.num_layers):
-            x_gru, self.hidden = self.gru(x_gru, self.hidden)
-            x = torch.cat([x, x_gru], -1)
-            x = self.linear(x)
-            x = self.batch_norm(x)
-            x = torch.nn.functional.leaky_relu(x)
-            x = self.dropout(x)
         x = x.view(len(x), -1)
         x = self.decoder(x)
         return x
@@ -44,5 +39,6 @@ class Model(torch.nn.Module):
         Initialize hidden state for GRUs
         """
         weight = next(self.parameters())
-        self.hidden = weight.new_zeros(2, batch_size, self.layer_size // 2)
+        self.hidden = weight.new_zeros(2 * self.num_layers, batch_size,
+                                       self.layer_size // 2)
         torch.nn.init.uniform_(self.hidden, 0, init_range)
