@@ -12,7 +12,7 @@ class Model(torch.nn.Module):
         self.num_layers = num_layers
 
         self.embedding = torch.nn.Embedding(output_size, embedding_size)
-        self.encoder = torch.nn.Linear(embedding_size, layer_size)
+        self.encoder = torch.nn.Linear(embedding_size, layer_size, bias=False)
         self.gru = torch.nn.GRU(layer_size, layer_size // 2, batch_first=True,
                                 bidirectional=True)
         self.linear = torch.nn.Linear(layer_size * 2, layer_size, bias=False)
@@ -24,6 +24,7 @@ class Model(torch.nn.Module):
         x = self.embedding(x)
         x = self.dropout(x)
         x = self.encoder(x)
+        x = self.batch_norm(x)
         x = torch.nn.functional.leaky_relu(x)
         x = self.dropout(x)
         x_gru = x
@@ -38,7 +39,10 @@ class Model(torch.nn.Module):
         x = self.decoder(x)
         return x
 
-    def init_hidden(self, batch_size, init_range=0.1):
+    def init_hidden(self, batch_size=1, init_range=0.1):
+        """
+        Initialize hidden state for GRUs
+        """
         weight = next(self.parameters())
         self.hidden = weight.new_zeros(2, batch_size, self.layer_size // 2)
         torch.nn.init.uniform_(self.hidden, 0, init_range)

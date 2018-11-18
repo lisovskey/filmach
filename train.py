@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from glob import glob
-from generate import sample_text
+from sample import sample_text
 from dump import save_alphabet
 from sys import stdout
 from os import path
@@ -91,8 +91,7 @@ if __name__ == '__main__':
                   chars_indices, indices_chars)
     model = Model(args.embedding_size, args.layer_size, args.sequence_size,
                   len(chars_indices), args.num_layers, args.dropout)
-    use_cuda = not args.disable_cuda and torch.cuda.is_available()
-    if use_cuda:
+    if not args.disable_cuda and torch.cuda.is_available():
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.RMSprop(model.parameters(), args.learning_rate,
@@ -104,7 +103,7 @@ if __name__ == '__main__':
         progress = tqdm(dataloader)
         losses = []
         for x_batch, y_batch in progress:
-            if use_cuda:
+            if next(model.parameters()).is_cuda:
                 x_batch, y_batch = x_batch.cuda(), y_batch.cuda()
             model.init_hidden(len(x_batch))
             y_preds = model(x_batch)
