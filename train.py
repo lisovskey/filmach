@@ -47,20 +47,20 @@ def load_data(data_dir, sequence_size):
 def generate_demo(model, demo_length, text, sequence_size, chars_indices,
                   indices_chars):
     """
-    Print demo generation on different temperature after every epoch.
+    Print demo generation on different diffusion after every epoch.
     """
     print()
     start_index = np.random.randint(len(text) - sequence_size)
-    for temperature in [0.9, 0.8, 0.7]:
-        print(5*'-', 'Temperature:', temperature)
+    for diffusion in [0.2, 0.3, 0.4]:
+        print(5*'-', 'Temperature:', diffusion)
         sequence = text[start_index: start_index + sequence_size]
         print(5*'-', f'Generating with seed: "{sequence}"')
         stdout.write(sequence)
         for char in sample_text(model, demo_length, chars_indices,
-                                indices_chars, sequence, temperature):
+                                indices_chars, sequence, diffusion):
             stdout.write(char)
             stdout.flush()
-        print()    
+        print()
 
 
 def parse_args():
